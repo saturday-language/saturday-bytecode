@@ -14,6 +14,8 @@ fn main() {
   chunk.write_opcode(OpCode::OpConstant, 123);
   chunk.write(constant as u8, 123);
 
+  chunk.write_opcode(OpCode::OpNegate, 123);
+
   chunk.write_opcode(OpCode::OpReturn, 123);
   chunk.disassemble("test chunk");
 

@@ -50,6 +50,10 @@ impl VM {
           let constant = self.read_constant(chunk);
           self.stack.push(constant);
         }
+        OpCode::OpNegate => {
+          let value = self.stack.pop().unwrap();
+          self.stack.push(-value);
+        }
       }
     }
   }
