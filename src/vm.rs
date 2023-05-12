@@ -8,7 +8,6 @@ pub enum InterpretResult {
 }
 
 pub struct VM {
-  // chunk: Option<Chunk>,
   ip: usize,
   stack: Vec<Value>,
 }
@@ -23,9 +22,9 @@ impl VM {
 
   pub fn free(&mut self) {}
 
-  pub fn interpret(&mut self, chunk: &Chunk) -> InterpretResult {
-    self.ip = 0;
-    self.run(chunk)
+  pub fn interpret(&mut self, source: &str) -> InterpretResult {
+    self.compile(source);
+    InterpretResult::Ok
   }
 
   fn run(&mut self, chunk: &Chunk) -> InterpretResult {
