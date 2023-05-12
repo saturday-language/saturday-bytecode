@@ -9,8 +9,8 @@ impl ValueArray {
     Self { values: Vec::new() }
   }
 
-  pub fn write(&mut self, value: Value) -> usize {
-    let count = self.values.len();
+  pub fn write(&mut self, value: Value) -> u8 {
+    let count = self.values.len() as u8;
     self.values.push(value);
     count
   }
