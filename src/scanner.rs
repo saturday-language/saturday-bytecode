@@ -1,3 +1,4 @@
+use crate::token::{Token, TokenType};
 use crate::value::Value;
 
 pub struct Scanner {
@@ -5,57 +6,6 @@ pub struct Scanner {
   start: usize,
   current: usize,
   line: usize,
-}
-
-pub struct Token {
-  pub t_type: TokenType,
-  pub lexeme: String,
-  pub line: usize,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum TokenType {
-  LeftParen,  // (
-  RightParen, // )
-  LeftBrace,  // {
-  RightBrace, // }
-  Comma,
-  Dot,
-  Minus,
-  Plus,
-  SemiColon,
-  Slash,
-  Star,
-  Bang,      // !
-  BangEqual, // !=
-  Equal,
-  EqualEqual,
-  Greater,
-  GreaterEqual,
-  Less,
-  LessEqual,
-  Identifier,
-  String,
-  Number,
-  And,
-  Class,
-  Else,
-  False,
-  Fun,
-  For,
-  If,
-  Nil,
-  Or,
-  Print,
-  Return,
-  Super,
-  This,
-  True,
-  Def,
-  While,
-  Error,
-  Eof,
-  Break,
 }
 
 impl Scanner {

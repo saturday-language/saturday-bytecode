@@ -9,6 +9,12 @@ mod compiler;
 mod scanner;
 mod value;
 mod vm;
+mod token;
+
+pub enum InterpretResult {
+  CompileError,
+  RuntimeError,
+}
 
 fn main() {
   let args: Vec<String> = args().collect();
@@ -49,8 +55,8 @@ fn repl(vm: &mut VM) {
 fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
   let buf = std::fs::read_to_string(path)?;
   match vm.interpret(&buf) {
-    InterpretResult::CompileError => std::process::exit(65),
-    InterpretResult::RuntimeError => std::process::exit(70),
-    InterpretResult::Ok => std::process::exit(0),
+    Err(InterpretResult::CompileError) => std::process::exit(65),
+    Err(InterpretResult::RuntimeError) => std::process::exit(70),
+    Ok(_) => std::process::exit(0),
   }
 }
