@@ -1,10 +1,12 @@
-use std::env::args;
-use std::io;
-use std::io::{BufRead, stdout, Write};
 use crate::chunk::{Chunk, OpCode};
 use crate::vm::{InterpretResult, VM};
+use std::env::args;
+use std::io;
+use std::io::{stdout, BufRead, Write};
 
 mod chunk;
+mod compiler;
+mod scanner;
 mod value;
 mod vm;
 
@@ -51,6 +53,4 @@ fn run_file(vm: &mut VM, path: &str) -> io::Result<()> {
     InterpretResult::RuntimeError => std::process::exit(70),
     InterpretResult::Ok => std::process::exit(0),
   }
-
-  Ok(())
 }

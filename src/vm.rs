@@ -1,4 +1,5 @@
 use crate::chunk::{Chunk, OpCode};
+use crate::compiler::Compiler;
 use crate::value::Value;
 
 pub enum InterpretResult {
@@ -23,7 +24,8 @@ impl VM {
   pub fn free(&mut self) {}
 
   pub fn interpret(&mut self, source: &str) -> InterpretResult {
-    self.compile(source);
+    let compiler = Compiler::new();
+    compiler.compile(source);
     InterpretResult::Ok
   }
 

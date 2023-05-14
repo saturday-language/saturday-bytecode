@@ -1,0 +1,12 @@
+def a = 0;
+def temp;
+
+for def b = 1; a < 10000; b = temp + b {
+    print a;
+    temp = a;
+    a = b;
+
+    if a > 1000 {
+        break;
+    }
+}
