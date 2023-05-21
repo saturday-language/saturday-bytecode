@@ -44,8 +44,9 @@ impl Chunk {
     self.constants.free();
   }
 
-  pub fn add_constant(&mut self, value: Value) -> u8 {
-    self.constants.write(value)
+  pub fn add_constant(&mut self, value: Value) -> Option<u8> {
+    let idx = self.constants.write(value);
+    u8::try_from(idx).ok()
   }
 
   pub fn get_constant(&self, index: usize) -> Value {

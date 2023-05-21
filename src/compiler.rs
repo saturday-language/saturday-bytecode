@@ -1,8 +1,10 @@
 use std::cell::RefCell;
 use crate::chunk::{Chunk, OpCode};
+use crate::compiler::Precedent::Primary;
 use crate::InterpretResult;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
+use crate::value::Value;
 
 pub struct Compiler<'a> {
   parser: Parser,
@@ -16,6 +18,66 @@ pub struct Parser {
   previous: Token,
   had_error: RefCell<bool>,
   panic_mode: RefCell<bool>,
+}
+
+struct ParseRule {
+  prefix: Option<fn(&mut Compiler)>,
+  infix: Option<fn(&mut Compiler)>,
+  precedence: Precedent,
+}
+
+#[derive(PartialEq, PartialOrd)]
+enum Precedent {
+  None = 0,
+  Assignment, // =
+  Or, // or
+  And, // and
+  Equality, // == !=
+  Comparison, // < > <= >=
+  Term, // + -
+  Factor, // * /
+  Unary, // ! -
+  Call, // . ()
+  Primary,
+}
+
+impl From<usize> for Precedent {
+  fn from(v: usize) -> Self {
+    match v {
+      0 => Precedent::None,
+      1 => Precedent::Assignment,
+      2 => Precedent::Or,
+      3 => Precedent::And,
+      4 => Precedent::Equality,
+      5 => Precedent::Comparison,
+      6 => Precedent::Term,
+      7 => Precedent::Factor,
+      8 => Precedent::Unary,
+      9 => Precedent::Call,
+      10 => Precedent::Primary,
+      _ => panic!("cannot convert {v} into Precedence"),
+    }
+  }
+}
+
+impl Precedent {
+  fn previous(&self) -> Self {
+    if self == Precedent::None {
+      panic!("no previous before None");
+    } else {
+      let p = self as usize;
+      (p - 1).into()
+    }
+  }
+
+  fn next(&self) -> Self {
+    if self == Precedent::Primary {
+      panic!("no next after Primary");
+    } else {
+      let p = self as usize;
+      (p + 1).into()
+    }
+  }
 }
 
 impl<'a> Compiler<'a> {
@@ -78,12 +140,77 @@ impl<'a> Compiler<'a> {
     self.emit_byte(OpCode::Return.into());
   }
 
+  fn make_constant(&mut self, value: Value) -> u8 {
+    if let Some(constant) = self.chunk.add_constant(value) {
+      constant
+    } else {
+      self.error("Too many constants in one chunk.");
+      0
+    }
+  }
+
+  fn emit_constant(&mut self, value: Value) {
+    let constant = self.make_constant(value);
+    self.emit_bytes(OpCode::Constant, constant);
+  }
+
   fn end_compiler(&mut self) {
     self.emit_return();
   }
 
+  fn binary(&mut self) {
+    let operator_type = self.parser.previous.t_type;
+    let rule = self.get_rule(operator_type);
+
+    self.parse_precedence(rule.precedence.next());
+
+    match operator_type {
+      TokenType::Plus => self.emit_byte(OpCode::Add.into()),
+      TokenType::Minus => self.emit_byte(OpCode::Subtract.into()),
+      TokenType::Star => self.emit_byte(OpCode::Multiply.into()),
+      TokenType::Slash => self.emit_byte(OpCode::Divide.into()),
+      _ => todo!(),
+    }
+  }
+
+  fn grouping(&mut self) {
+    self.expression();
+    self.consume(TokenType::RightParen, "Expect ')' after expression.");
+  }
+
+  fn number(&mut self) {
+    let value = self.parser.previous.lexeme.parse::<Value>().unwrap();
+    self.emit_constant(value);
+  }
+
+  fn unary(&mut self) {
+    let operator_type = self.parser.previous.t_type;
+
+    self.parse_precedence(Precedent::Unary);
+
+    if operator_type == TokenType::Minus {
+      self.emit_byte(OpCode::Negate.into());
+    } else {
+      unimplemented!("none");
+    }
+  }
+
+  fn parse_precedence(&self, precedent: Precedent) {
+
+  }
+
+  fn get_rule(&self, t_type: TokenType) -> ParseRule {
+    match t_type {
+      _ => ParseRule {
+        prefix: None,
+        infix: None,
+        precedence: Precedent::None,
+      },
+    }
+  }
+
   fn expression(&mut self) {
-    
+    self.parse_precedence(Precedent::Assignment);
   }
 
   fn error_at_current(&self, message: &str) {
