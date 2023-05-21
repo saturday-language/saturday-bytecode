@@ -1,7 +1,7 @@
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Compiler;
-use crate::InterpretResult;
 use crate::value::Value;
+use crate::InterpretResult;
 
 pub struct VM {
   ip: usize,

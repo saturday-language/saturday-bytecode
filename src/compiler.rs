@@ -1,15 +1,16 @@
-use std::cell::RefCell;
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Precedent::Primary;
-use crate::InterpretResult;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
+use crate::InterpretResult;
+use std::cell::RefCell;
 
 pub struct Compiler<'a> {
   parser: Parser,
   scanner: Scanner,
   chunk: &'a mut Chunk,
+  rules: Vec<ParseRule>,
 }
 
 #[derive(Default)]
@@ -20,6 +21,7 @@ pub struct Parser {
   panic_mode: RefCell<bool>,
 }
 
+#[derive(Copy, Clone)]
 struct ParseRule {
   prefix: Option<fn(&mut Compiler)>,
   infix: Option<fn(&mut Compiler)>,
@@ -30,14 +32,14 @@ struct ParseRule {
 enum Precedent {
   None = 0,
   Assignment, // =
-  Or, // or
-  And, // and
-  Equality, // == !=
+  Or,         // or
+  And,        // and
+  Equality,   // == !=
   Comparison, // < > <= >=
-  Term, // + -
-  Factor, // * /
-  Unary, // ! -
-  Call, // . ()
+  Term,       // + -
+  Factor,     // * /
+  Unary,      // ! -
+  Call,       // . ()
   Primary,
 }
 
@@ -82,10 +84,26 @@ impl Precedent {
 
 impl<'a> Compiler<'a> {
   pub fn new(chunk: &'a mut Chunk) -> Self {
+    // 定义一个长度为NumberOfTokens的数组，初始化值时ParseRule[None]
+    let mut rules = vec![
+      ParseRule {
+        prefix: None,
+        infix: None,
+        precedence: Precedent::None,
+      };
+      TokenType::NumberOfTokens as usize
+    ];
+    rules[TokenType::LeftParen as usize] = ParseRule {
+      prefix: Some(|c| c.grouping()),
+      infix: None,
+      precedence: Precedent::None,
+    };
+
     Self {
       parser: Parser::default(),
       scanner: Scanner::new(""),
       chunk,
+      rules,
     }
   }
 
@@ -195,9 +213,7 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn parse_precedence(&self, precedent: Precedent) {
-
-  }
+  fn parse_precedence(&self, precedent: Precedent) {}
 
   fn get_rule(&self, t_type: TokenType) -> ParseRule {
     match t_type {

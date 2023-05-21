@@ -7,9 +7,9 @@ use std::io::{stdout, BufRead, Write};
 mod chunk;
 mod compiler;
 mod scanner;
+mod token;
 mod value;
 mod vm;
-mod token;
 
 pub enum InterpretResult {
   CompileError,
