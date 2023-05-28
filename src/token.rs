@@ -24,7 +24,7 @@ impl Clone for Token {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum TokenType {
   LeftParen,  // (
   RightParen, // )
@@ -66,7 +66,6 @@ pub enum TokenType {
   While,
   Error,
   Eof,
-  Break,
   Undefined,
   NumberOfTokens,
 }

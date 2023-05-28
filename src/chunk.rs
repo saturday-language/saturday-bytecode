@@ -30,11 +30,6 @@ impl Chunk {
     self.lines.push(line);
   }
 
-  pub fn write_opcode(&mut self, byte: OpCode, line: usize) {
-    self.code.push(byte.into());
-    self.lines.push(line);
-  }
-
   pub fn read(&self, ip: usize) -> u8 {
     self.code[ip]
   }
@@ -46,7 +41,7 @@ impl Chunk {
 
   pub fn add_constant(&mut self, value: Value) -> Option<u8> {
     let idx = self.constants.write(value);
-    u8::try_from(idx).ok()
+    Some(idx)
   }
 
   pub fn get_constant(&self, index: usize) -> Value {

@@ -4,7 +4,6 @@ use crate::token::{Token, TokenType};
 use crate::value::Value;
 use crate::InterpretResult;
 use std::cell::RefCell;
-use std::thread::scope;
 
 pub struct Compiler<'a> {
   parser: Parser,
@@ -63,6 +62,7 @@ impl From<usize> for Precedent {
 }
 
 impl Precedent {
+  /*
   fn previous(&self) -> Self {
     if *self == Precedent::None {
       panic!("no previous before None");
@@ -71,6 +71,7 @@ impl Precedent {
       (p - 1).into()
     }
   }
+   */
 
   fn next(&self) -> Self {
     if *self == Precedent::Primary {
@@ -199,6 +200,10 @@ impl<'a> Compiler<'a> {
 
   fn end_compiler(&mut self) {
     self.emit_return();
+    #[cfg(feature = "debug_print_code")]
+    if !*self.parser.had_error.borrow() {
+      self.chunk.disassemble("code");
+    }
   }
 
   fn binary(&mut self) {
@@ -251,10 +256,6 @@ impl<'a> Compiler<'a> {
     } else {
       self.error("Expect expression.");
     }
-  }
-
-  fn get_rule(&self, t_type: TokenType) -> ParseRule {
-    self.rules[t_type as usize]
   }
 
   fn expression(&mut self) {
