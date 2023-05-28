@@ -1,10 +1,10 @@
 use crate::chunk::{Chunk, OpCode};
-use crate::compiler::Precedent::Primary;
 use crate::scanner::Scanner;
 use crate::token::{Token, TokenType};
 use crate::value::Value;
 use crate::InterpretResult;
 use std::cell::RefCell;
+use std::thread::scope;
 
 pub struct Compiler<'a> {
   parser: Parser,
@@ -28,7 +28,7 @@ struct ParseRule {
   precedence: Precedent,
 }
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, PartialOrd, Copy, Clone)]
 enum Precedent {
   None = 0,
   Assignment, // =
@@ -64,19 +64,19 @@ impl From<usize> for Precedent {
 
 impl Precedent {
   fn previous(&self) -> Self {
-    if self == Precedent::None {
+    if *self == Precedent::None {
       panic!("no previous before None");
     } else {
-      let p = self as usize;
+      let p = *self as usize;
       (p - 1).into()
     }
   }
 
   fn next(&self) -> Self {
-    if self == Precedent::Primary {
+    if *self == Precedent::Primary {
       panic!("no next after Primary");
     } else {
-      let p = self as usize;
+      let p = *self as usize;
       (p + 1).into()
     }
   }
@@ -98,6 +98,31 @@ impl<'a> Compiler<'a> {
       infix: None,
       precedence: Precedent::None,
     };
+    rules[TokenType::Minus as usize] = ParseRule {
+      prefix: Some(|c| c.unary()),
+      infix: Some(|c| c.binary()),
+      precedence: Precedent::Term,
+    };
+    rules[TokenType::Plus as usize] = ParseRule {
+      prefix: None,
+      infix: Some(|c| c.binary()),
+      precedence: Precedent::Term,
+    };
+    rules[TokenType::Slash as usize] = ParseRule {
+      prefix: None,
+      infix: Some(|c| c.binary()),
+      precedence: Precedent::Factor,
+    };
+    rules[TokenType::Star as usize] = ParseRule {
+      prefix: None,
+      infix: Some(|c| c.binary()),
+      precedence: Precedent::Factor,
+    };
+    rules[TokenType::Number as usize] = ParseRule {
+      prefix: Some(|c| c.number()),
+      infix: None,
+      precedence: Precedent::None,
+    };
 
     Self {
       parser: Parser::default(),
@@ -110,7 +135,7 @@ impl<'a> Compiler<'a> {
   pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
     self.scanner = Scanner::new(source);
     self.advance();
-    // self.expression()?;
+    self.expression();
 
     self.consume(TokenType::Eof, "Expect end of expression.");
     self.end_compiler();
@@ -178,9 +203,9 @@ impl<'a> Compiler<'a> {
 
   fn binary(&mut self) {
     let operator_type = self.parser.previous.t_type;
-    let rule = self.get_rule(operator_type);
+    let rule = self.rules[operator_type as usize].precedence.next();
 
-    self.parse_precedence(rule.precedence.next());
+    self.parse_precedence(rule);
 
     match operator_type {
       TokenType::Plus => self.emit_byte(OpCode::Add.into()),
@@ -213,16 +238,23 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn parse_precedence(&self, precedent: Precedent) {}
+  fn parse_precedence(&mut self, precedent: Precedent) {
+    self.advance();
+    if let Some(prefix_rule) = self.rules[self.parser.previous.t_type as usize].prefix {
+      prefix_rule(self);
+      while precedent <= self.rules[self.parser.current.t_type as usize].precedence {
+        self.advance();
+        if let Some(infix_rule) = self.rules[self.parser.previous.t_type as usize].infix {
+          infix_rule(self);
+        }
+      }
+    } else {
+      self.error("Expect expression.");
+    }
+  }
 
   fn get_rule(&self, t_type: TokenType) -> ParseRule {
-    match t_type {
-      _ => ParseRule {
-        prefix: None,
-        infix: None,
-        precedence: Precedent::None,
-      },
-    }
+    self.rules[t_type as usize]
   }
 
   fn expression(&mut self) {

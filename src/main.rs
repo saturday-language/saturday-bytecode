@@ -1,5 +1,4 @@
-use crate::chunk::{Chunk, OpCode};
-use crate::vm::{InterpretResult, VM};
+use crate::vm::VM;
 use std::env::args;
 use std::io;
 use std::io::{stdout, BufRead, Write};

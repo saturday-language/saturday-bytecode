@@ -68,4 +68,5 @@ pub enum TokenType {
   Eof,
   Break,
   Undefined,
+  NumberOfTokens,
 }

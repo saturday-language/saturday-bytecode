@@ -1,5 +1,4 @@
 use crate::token::{Token, TokenType};
-use crate::value::Value;
 
 pub struct Scanner {
   source: Vec<char>,
