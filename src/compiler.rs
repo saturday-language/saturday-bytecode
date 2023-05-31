@@ -119,11 +119,10 @@ impl<'a> Compiler<'a> {
       infix: Some(|c| c.binary()),
       precedence: Precedent::Factor,
     };
-    rules[TokenType::Number as usize] = ParseRule {
-      prefix: Some(|c| c.number()),
-      infix: None,
-      precedence: Precedent::None,
-    };
+    rules[TokenType::Number as usize].prefix = Some(|c| c.number());
+    rules[TokenType::False as usize].prefix = Some(|c| c.literal());
+    rules[TokenType::True as usize].prefix = Some(|c| c.literal());
+    rules[TokenType::Nil as usize].prefix = Some(|c| c.literal());
 
     Self {
       parser: Parser::default(),
@@ -218,6 +217,15 @@ impl<'a> Compiler<'a> {
       TokenType::Star => self.emit_byte(OpCode::Multiply.into()),
       TokenType::Slash => self.emit_byte(OpCode::Divide.into()),
       _ => todo!(),
+    }
+  }
+
+  fn literal(&mut self) {
+    match self.parser.previous.t_type {
+      TokenType::False => self.emit_byte(OpCode::False.into()),
+      TokenType::Nil => self.emit_byte(OpCode::Nil.into()),
+      TokenType::True => self.emit_byte(OpCode::True.into()),
+      _ => unreachable!(),
     }
   }
 

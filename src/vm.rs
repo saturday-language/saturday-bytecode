@@ -51,6 +51,9 @@ impl VM {
           let constant = self.read_constant();
           self.stack.push(constant);
         }
+        OpCode::Nil => self.stack.push(Value::Nil),
+        OpCode::True => self.stack.push(Value::Boolean(true)),
+        OpCode::False => self.stack.push(Value::Boolean(false)),
         OpCode::Negate => {
           if !self.peek(0).is_number() {
             return self.runtime_error(&"Operand must be a number");
