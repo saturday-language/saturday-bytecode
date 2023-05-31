@@ -123,6 +123,7 @@ impl<'a> Compiler<'a> {
     rules[TokenType::False as usize].prefix = Some(|c| c.literal());
     rules[TokenType::True as usize].prefix = Some(|c| c.literal());
     rules[TokenType::Nil as usize].prefix = Some(|c| c.literal());
+    rules[TokenType::Bang as usize].prefix = Some(|c| c.unary());
 
     Self {
       parser: Parser::default(),
@@ -244,10 +245,10 @@ impl<'a> Compiler<'a> {
 
     self.parse_precedence(Precedent::Unary);
 
-    if operator_type == TokenType::Minus {
-      self.emit_byte(OpCode::Negate.into());
-    } else {
-      unimplemented!("none");
+    match operator_type {
+      TokenType::Minus => self.emit_byte(OpCode::Negate.into()),
+      TokenType::Bang => self.emit_byte(OpCode::Not.into()),
+      _ => unimplemented!("nope"),
     }
   }
 
