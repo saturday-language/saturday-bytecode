@@ -125,6 +125,22 @@ impl<'a> Compiler<'a> {
     rules[TokenType::Nil as usize].prefix = Some(|c| c.literal());
     rules[TokenType::Bang as usize].prefix = Some(|c| c.unary());
 
+    rules[TokenType::BangEqual as usize] = ParseRule {
+      prefix: None,
+      infix: Some(|c| c.binary()),
+      precedence: Precedent::Equality,
+    };
+    rules[TokenType::EqualEqual as usize] = rules[TokenType::BangEqual as usize];
+
+    rules[TokenType::Greater as usize] = ParseRule {
+      prefix: None,
+      infix: Some(|c| c.binary()),
+      precedence: Precedent::Comparison,
+    };
+    rules[TokenType::GreaterEqual as usize] = rules[TokenType::Greater as usize];
+    rules[TokenType::Less as usize] = rules[TokenType::Greater as usize];
+    rules[TokenType::LessEqual as usize] = rules[TokenType::Greater as usize];
+
     Self {
       parser: Parser::default(),
       scanner: Scanner::new(""),
@@ -213,6 +229,12 @@ impl<'a> Compiler<'a> {
     self.parse_precedence(rule);
 
     match operator_type {
+      TokenType::BangEqual => self.emit_bytes(OpCode::Equal, OpCode::Not.into()),
+      TokenType::EqualEqual => self.emit_byte(OpCode::Equal.into()),
+      TokenType::Greater => self.emit_byte(OpCode::Greater.into()),
+      TokenType::GreaterEqual => self.emit_bytes(OpCode::Less, OpCode::Not.into()),
+      TokenType::Less => self.emit_byte(OpCode::Less.into()),
+      TokenType::LessEqual => self.emit_bytes(OpCode::Greater, OpCode::Not.into()),
       TokenType::Plus => self.emit_byte(OpCode::Add.into()),
       TokenType::Minus => self.emit_byte(OpCode::Subtract.into()),
       TokenType::Star => self.emit_byte(OpCode::Multiply.into()),
