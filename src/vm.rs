@@ -1,5 +1,6 @@
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Compiler;
+use crate::object::Obj;
 use crate::value::Value;
 use crate::InterpretResult;
 use std::rc::Rc;
@@ -8,6 +9,7 @@ pub struct VM {
   ip: usize,
   stack: Vec<Value>,
   chunk: Rc<Chunk>,
+  memory: Vec<Obj>,
 }
 
 impl VM {
@@ -16,6 +18,7 @@ impl VM {
       ip: 0,
       stack: Vec::new(),
       chunk: Rc::new(Chunk::new()),
+      memory: Vec::new(),
     }
   }
 

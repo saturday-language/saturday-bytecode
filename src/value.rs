@@ -1,4 +1,5 @@
-use std::fmt::{Display, Formatter};
+use crate::object::Obj;
+use std::fmt::{write, Display, Formatter};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
@@ -6,6 +7,7 @@ pub enum Value {
   Boolean(bool),
   Number(f64),
   Nil,
+  Obj(usize),
 }
 
 impl Display for Value {
@@ -14,6 +16,7 @@ impl Display for Value {
       Value::Boolean(b) => write!(f, "{b}"),
       Value::Number(n) => write!(f, "{n}"),
       Value::Nil => write!(f, "nil"),
+      Value::Obj(o) => write!(f, "Object[{o}]"),
     }
   }
 }
@@ -79,23 +82,34 @@ impl Value {
   }
 
   pub fn is_falsy(&self) -> bool {
-    matches!(self, Value::Number(n) if n == &0.0) || matches!(self, Value::Nil | Value::Boolean(false))
+    matches!(self, Value::Number(n) if n == &0.0)
+      || matches!(self, Value::Nil | Value::Boolean(false))
   }
 }
 
 pub struct ValueArray {
   values: Vec<Value>,
+  objects: Vec<Obj>,
 }
 
 impl ValueArray {
   pub fn new() -> Self {
-    Self { values: Vec::new() }
+    Self {
+      values: Vec::new(),
+      objects: Vec::new(),
+    }
   }
 
   pub fn write(&mut self, value: Value) -> u8 {
     let count = self.values.len() as u8;
     self.values.push(value);
     count
+  }
+
+  pub fn make_object_string(&mut self, s: String) -> usize {
+    let ret = self.objects.len();
+    self.objects.push(Obj::String(s));
+    ret
   }
 
   pub fn print_value(&self, which: usize) {

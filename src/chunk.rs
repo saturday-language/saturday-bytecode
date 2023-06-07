@@ -1,3 +1,4 @@
+use std::process::id;
 use crate::value::{Value, ValueArray};
 
 pub enum OpCode {
@@ -48,6 +49,11 @@ impl Chunk {
   pub fn add_constant(&mut self, value: Value) -> Option<u8> {
     let idx = self.constants.write(value);
     u8::try_from(idx).ok()
+  }
+
+  pub fn make_object(&mut self, s: String) -> Value {
+    let idx = self.constants.make_object_string(s);
+    Value::Obj(idx)
   }
 
   pub fn get_constant(&self, index: usize) -> Value {

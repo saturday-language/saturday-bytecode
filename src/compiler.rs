@@ -141,6 +141,8 @@ impl<'a> Compiler<'a> {
     rules[TokenType::Less as usize] = rules[TokenType::Greater as usize];
     rules[TokenType::LessEqual as usize] = rules[TokenType::Greater as usize];
 
+    rules[TokenType::String as usize].prefix = Some(|c| c.string());
+
     Self {
       parser: Parser::default(),
       scanner: Scanner::new(""),
@@ -260,6 +262,13 @@ impl<'a> Compiler<'a> {
   fn number(&mut self) {
     let value = self.parser.previous.lexeme.parse::<f64>().unwrap();
     self.emit_constant(Value::Number(value));
+  }
+
+  fn string(&mut self) {
+    let len = self.parser.previous.lexeme.len() - 2;
+    let value = self.parser.previous.lexeme[1..len].to_string();
+    let constant = self.chunk.make_object(value);
+    self.emit_constant(constant)
   }
 
   fn unary(&mut self) {
