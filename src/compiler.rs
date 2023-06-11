@@ -154,9 +154,11 @@ impl<'a> Compiler<'a> {
   pub fn compile(&mut self, source: &str) -> Result<(), InterpretResult> {
     self.scanner = Scanner::new(source);
     self.advance();
-    self.expression();
 
-    self.consume(TokenType::Eof, "Expect end of expression.");
+    while !self.is_match(TokenType::Eof) {
+      self.declaration();
+    }
+
     self.end_compiler();
 
     if *self.parser.had_error.borrow() {
@@ -187,6 +189,19 @@ impl<'a> Compiler<'a> {
     }
 
     self.error_at_current(message);
+  }
+
+  fn check(&self, t_type: TokenType) -> bool {
+    self.parser.current.t_type == t_type
+  }
+
+  fn is_match(&mut self, t_type: TokenType) -> bool {
+    if self.check(t_type) {
+      self.advance();
+      true
+    } else {
+      false
+    }
   }
 
   fn emit_byte(&mut self, byte: u8) {
@@ -299,6 +314,22 @@ impl<'a> Compiler<'a> {
 
   fn expression(&mut self) {
     self.parse_precedence(Precedent::Assignment);
+  }
+
+  fn print_statement(&mut self) {
+    self.expression();
+    self.consume(TokenType::SemiColon, &"Expect ';' after value.");
+    self.emit_byte(OpCode::Print.into());
+  }
+
+  fn declaration(&mut self) {
+    self.statement();
+  }
+
+  fn statement(&mut self) {
+    if self.is_match(TokenType::Print) {
+      self.print_statement();
+    }
   }
 
   fn error_at_current(&self, message: &str) {
