@@ -110,8 +110,21 @@ impl ValueArray {
     Self { values: Vec::new() }
   }
 
-  pub fn write(&mut self, value: Value) -> u8 {
-    let count = self.values.len() as u8;
+  pub fn write(&mut self, value: Value) -> usize {
+    /*
+    // string interning
+    if let Value::Str(s) = value.clone() {
+      for (i, v) in self.values.iter().enumerate() {
+        if let Value::Str(t) = v {
+          if t == &s {
+            return i;
+          }
+        }
+      }
+    }
+     */
+
+    let count = self.values.len();
     self.values.push(value);
     count
   }
