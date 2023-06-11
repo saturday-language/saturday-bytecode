@@ -312,8 +312,38 @@ impl<'a> Compiler<'a> {
     }
   }
 
+  fn identifier_constant(&mut self, name: &str) -> u8 {
+    self.make_constant(Value::Str(name.to_string()))
+  }
+
+  fn parse_variable(&mut self, error_message: &str) -> u8 {
+    self.consume(TokenType::Identifier, error_message);
+    let name = self.parser.previous.lexeme.clone();
+    self.identifier_constant(&name)
+  }
+
+  fn define_variable(&mut self, global: u8) {
+    self.emit_bytes(OpCode::DefineGlobal, global);
+  }
+
   fn expression(&mut self) {
     self.parse_precedence(Precedent::Assignment);
+  }
+
+  fn def_declaration(&mut self) {
+    let global = self.parse_variable("Expect variable name.");
+
+    if self.is_match(TokenType::Equal) {
+      self.expression();
+    } else {
+      self.emit_byte(OpCode::Nil.into());
+    }
+
+    self.consume(
+      TokenType::SemiColon,
+      "Expect ';' after variable declaration.",
+    );
+    self.define_variable(global);
   }
 
   fn expression_statement(&mut self) {
@@ -324,7 +354,7 @@ impl<'a> Compiler<'a> {
 
   fn print_statement(&mut self) {
     self.expression();
-    self.consume(TokenType::SemiColon, &"Expect ';' after value.");
+    self.consume(TokenType::SemiColon, "Expect ';' after value.");
     self.emit_byte(OpCode::Print.into());
   }
 
@@ -354,7 +384,11 @@ impl<'a> Compiler<'a> {
   }
 
   fn declaration(&mut self) {
-    self.statement();
+    if self.is_match(TokenType::Def) {
+      self.def_declaration();
+    } else {
+      self.statement();
+    }
 
     if *self.parser.panic_mode.borrow() {
       self.synchronize();
