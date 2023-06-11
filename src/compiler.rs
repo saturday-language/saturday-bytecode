@@ -192,6 +192,16 @@ impl<'a> Compiler<'a> {
     self.error_at_current(message);
   }
 
+  /// 表达式结尾 必须换行
+  fn consume_statement_end(&mut self) {
+    if vec![TokenType::Eof, TokenType::NewLine].contains(&self.parser.current.t_type) {
+      self.advance();
+      return;
+    }
+
+    self.error_at_current("Expect Wrap after value.");
+  }
+
   fn check(&self, t_type: TokenType) -> bool {
     self.parser.current.t_type == t_type
   }
@@ -350,22 +360,19 @@ impl<'a> Compiler<'a> {
       self.emit_byte(OpCode::Nil.into());
     }
 
-    self.consume(
-      TokenType::SemiColon,
-      "Expect ';' after variable declaration.",
-    );
+    self.consume_statement_end();
     self.define_variable(global);
   }
 
   fn expression_statement(&mut self) {
     self.expression();
-    self.consume(TokenType::SemiColon, "Expect ';' after expression.");
+    self.consume_statement_end();
     self.emit_byte(OpCode::Pop.into());
   }
 
   fn print_statement(&mut self) {
     self.expression();
-    self.consume(TokenType::SemiColon, "Expect ';' after value.");
+    self.consume_statement_end();
     self.emit_byte(OpCode::Print.into());
   }
 

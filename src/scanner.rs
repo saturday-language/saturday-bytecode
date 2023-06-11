@@ -39,6 +39,10 @@ impl Scanner {
       '+' => self.make_token(TokenType::Plus),
       '/' => self.make_token(TokenType::Slash),
       '*' => self.make_token(TokenType::Star),
+      '\n' => {
+        self.line += 1;
+        self.make_token(TokenType::NewLine)
+      }
       '!' => {
         let is_eq = self.is_match('=');
         self.make_token(if is_eq {
@@ -102,10 +106,6 @@ impl Scanner {
     loop {
       match self.peek() {
         ' ' | '\r' | '\t' => {
-          self.advance();
-        }
-        '\n' => {
-          self.line += 1;
           self.advance();
         }
         '/' => {

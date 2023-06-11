@@ -67,5 +67,6 @@ pub enum TokenType {
   Error,
   Eof,
   Undefined,
+  NewLine,
   NumberOfTokens,
 }
