@@ -41,7 +41,7 @@ impl Scanner {
       '*' => self.make_token(TokenType::Star),
       '\n' => {
         self.line += 1;
-        self.make_token(TokenType::NewLine)
+        self.make_token(TokenType::Wrap)
       }
       '!' => {
         let is_eq = self.is_match('=');

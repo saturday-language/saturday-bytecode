@@ -194,7 +194,7 @@ impl<'a> Compiler<'a> {
 
   /// 表达式结尾 必须换行
   fn consume_statement_end(&mut self) {
-    if vec![TokenType::Eof, TokenType::NewLine].contains(&self.parser.current.t_type) {
+    if vec![TokenType::Eof, TokenType::Wrap].contains(&self.parser.current.t_type) {
       self.advance();
       return;
     }
