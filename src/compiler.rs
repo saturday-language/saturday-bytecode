@@ -142,6 +142,7 @@ impl<'a> Compiler<'a> {
     rules[TokenType::LessEqual as usize] = rules[TokenType::Greater as usize];
 
     rules[TokenType::String as usize].prefix = Some(|c| c.string());
+    rules[TokenType::Identifier as usize].prefix = Some(|c| c.variable());
 
     Self {
       parser: Parser::default(),
@@ -285,6 +286,16 @@ impl<'a> Compiler<'a> {
     self.emit_constant(Value::Str(string))
   }
 
+  fn named_variable(&mut self, name: &Token) {
+    let arg = self.identifier_constant(name);
+    self.emit_bytes(OpCode::GetGlobal, arg);
+  }
+
+  fn variable(&mut self) {
+    let name = self.parser.previous.clone();
+    self.named_variable(&name);
+  }
+
   fn unary(&mut self) {
     let operator_type = self.parser.previous.t_type;
 
@@ -312,13 +323,13 @@ impl<'a> Compiler<'a> {
     }
   }
 
-  fn identifier_constant(&mut self, name: &str) -> u8 {
-    self.make_constant(Value::Str(name.to_string()))
+  fn identifier_constant(&mut self, name: &Token) -> u8 {
+    self.make_constant(Value::Str(name.lexeme.clone()))
   }
 
   fn parse_variable(&mut self, error_message: &str) -> u8 {
     self.consume(TokenType::Identifier, error_message);
-    let name = self.parser.previous.lexeme.clone();
+    let name = self.parser.previous.clone();
     self.identifier_constant(&name)
   }
 
