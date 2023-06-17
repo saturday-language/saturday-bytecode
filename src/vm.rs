@@ -1,8 +1,8 @@
-use std::collections::hash_map::Entry;
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Compiler;
 use crate::value::Value;
 use crate::InterpretResult;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -45,7 +45,7 @@ impl VM {
         self.chunk.disassemble_instruction(self.ip);
       }
 
-      let instruction = self.read_byte();
+      let instruction: OpCode = self.read_byte().into();
       match instruction {
         OpCode::DefineGlobal => {
           let constant = self.read_constant().clone();
@@ -75,12 +75,20 @@ impl VM {
             if let Entry::Occupied(mut o) = self.globals.entry(s.clone()) {
               *o.get_mut() = p.clone();
             } else {
-              return self.runtime_error(&format!("Undefined variable '{s}'."))
+              return self.runtime_error(&format!("Undefined variable '{s}'."));
             }
           }
         }
         OpCode::Pop => {
           self.pop();
+        }
+        OpCode::GetLocal => {
+          let slot = self.read_byte();
+          self.stack.push(self.stack[slot as usize].clone());
+        }
+        OpCode::SetLocal => {
+          let slot = self.read_byte() as usize;
+          self.stack[slot] = self.peek(0).clone();
         }
         OpCode::Print => {
           println!("{}", self.pop());
@@ -134,8 +142,8 @@ impl VM {
     self.stack.clear();
   }
 
-  fn read_byte(&mut self) -> OpCode {
-    let val = self.chunk.read(self.ip).into();
+  fn read_byte(&mut self) -> u8 {
+    let val: u8 = self.chunk.read(self.ip);
     self.ip += 1;
     val
   }
