@@ -512,7 +512,7 @@ impl<'a> Compiler<'a> {
   }
 
   fn declaration(&mut self) {
-    // 解析前去掉换行
+    // 去除表达式前的换行
     self.skip_new_line();
 
     if self.is_match(TokenType::Def) {
@@ -524,6 +524,9 @@ impl<'a> Compiler<'a> {
     if *self.parser.panic_mode.borrow() {
       self.synchronize();
     }
+
+    // 去除表达式后的换行
+    self.skip_new_line();
   }
 
   fn skip_new_line(&mut self) {
