@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Compiler;
 use crate::value::Value;
@@ -65,6 +66,17 @@ impl VM {
             }
           } else {
             panic!("Unable to read constant from table");
+          }
+        }
+        OpCode::SetGlobal => {
+          let constant = self.read_constant().clone();
+          if let Value::Str(s) = constant {
+            let p = self.peek(0).clone();
+            if let Entry::Occupied(mut o) = self.globals.entry(s.clone()) {
+              *o.get_mut() = p.clone();
+            } else {
+              return self.runtime_error(&format!("Undefined variable '{s}'."))
+            }
           }
         }
         OpCode::Pop => {
