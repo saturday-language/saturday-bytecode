@@ -91,6 +91,8 @@ impl Precedent {
 }
 
 impl<'a> Compiler<'a> {
+  pub const MAX: usize = u16::MAX as usize;
+
   pub fn new(chunk: &'a mut Chunk) -> Self {
     // 定义一个长度为NumberOfTokens的数组，初始化值时ParseRule[None]
     let mut rules = vec![
@@ -206,6 +208,10 @@ impl<'a> Compiler<'a> {
       return;
     }
 
+    if self.check(TokenType::RightBrace) {
+      return;
+    }
+
     self.error_at_current("Expect Wrap after value.");
   }
 
@@ -231,6 +237,13 @@ impl<'a> Compiler<'a> {
     self.emit_byte(byte2);
   }
 
+  fn emit_jump(&mut self, instruction: OpCode) -> usize {
+    self.emit_byte(instruction.into());
+    self.emit_byte(0xff);
+    self.emit_byte(0xff);
+    self.chunk.count() - 2
+  }
+
   fn emit_return(&mut self) {
     self.emit_byte(OpCode::Return.into());
   }
@@ -247,6 +260,17 @@ impl<'a> Compiler<'a> {
   fn emit_constant(&mut self, value: Value) {
     let constant = self.make_constant(value);
     self.emit_bytes(OpCode::Constant, constant);
+  }
+
+  fn patch_jump(&mut self, offset: usize) {
+    let jump = self.chunk.count() - offset - 2;
+
+    if jump > Self::MAX {
+      self.error("Too much code to jump over.");
+    }
+
+    self.chunk.write_at(offset, ((jump >> 8) & 0xff) as u8);
+    self.chunk.write_at(offset + 1, (jump & 0xff) as u8);
   }
 
   fn end_compiler(&mut self) {
@@ -480,6 +504,15 @@ impl<'a> Compiler<'a> {
     self.emit_byte(OpCode::Pop.into());
   }
 
+  fn if_statement(&mut self) {
+    self.expression();
+
+    let then_jump = self.emit_jump(OpCode::JumpIfFalse);
+    self.statement();
+
+    self.patch_jump(then_jump);
+  }
+
   fn print_statement(&mut self) {
     self.expression();
     self.consume_statement_end();
@@ -538,6 +571,8 @@ impl<'a> Compiler<'a> {
   fn statement(&mut self) {
     if self.is_match(TokenType::Print) {
       self.print_statement();
+    } else if self.is_match(TokenType::If) {
+      self.if_statement();
     } else if self.is_match(TokenType::LeftBrace) {
       self.begin_scope();
       self.block();
