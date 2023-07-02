@@ -154,6 +154,9 @@ impl<'a> Compiler<'a> {
     rules[TokenType::And as usize].infix = Some(Compiler::and);
     rules[TokenType::And as usize].precedence = Precedent::And;
 
+    rules[TokenType::Or as usize].infix = Some(Compiler::or);
+    rules[TokenType::Or as usize].precedence = Precedent::Or;
+
     Self {
       parser: Parser::default(),
       scanner: Scanner::new(""),
@@ -240,6 +243,8 @@ impl<'a> Compiler<'a> {
     self.emit_byte(byte2);
   }
 
+  /// 在需要被跳过的指令之前插入 需要在解析完要被跳过的指令之后使用patch_jump方法存储要跳转到的位置
+  /// 在真正执行时拿到该位置再进行跳转，从而跳过emit_jump和patch_jump之间的指令
   fn emit_jump(&mut self, instruction: OpCode) -> usize {
     self.emit_byte(instruction.into());
     self.emit_byte(0xff);
@@ -265,6 +270,10 @@ impl<'a> Compiler<'a> {
     self.emit_bytes(OpCode::Constant, constant);
   }
 
+  /// 在此方法之前会插入Jump或者JmpIfFalse指令，当插入这类指令后开始解析可能需要被跳过的指令
+  /// 此时堆栈中就能够获取jump或者jumpIfFalse指令需要跳过的距离，然后再通过这个patch_jump方法
+  /// 添加一个要跳转到的位置，到时候vm在执行到jump或者jumpIfFalse的时候就可以直接拿到这个要跳转的位置
+  /// 直接修改offset的值即可完成跳转
   fn patch_jump(&mut self, offset: usize) {
     let jump = self.chunk.count() - offset - 2;
 
@@ -337,6 +346,17 @@ impl<'a> Compiler<'a> {
   fn number(&mut self, _: bool) {
     let value = self.parser.previous.lexeme.parse::<f64>().unwrap();
     self.emit_constant(Value::Number(value));
+  }
+
+  fn or(&mut self, _: bool) {
+    let else_jump = self.emit_jump(OpCode::JumpIfFalse);
+    let end_jump = self.emit_jump(OpCode::Jump);
+
+    self.patch_jump(else_jump);
+    self.emit_byte(OpCode::Pop.into());
+
+    self.parse_precedence(Precedent::Or);
+    self.patch_jump(end_jump);
   }
 
   fn string(&mut self, _: bool) {
