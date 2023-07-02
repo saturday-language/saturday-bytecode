@@ -2,6 +2,7 @@ use crate::vm::VM;
 use std::env::args;
 use std::io;
 use std::io::{stdout, BufRead, Write};
+use crate::error::InterpretResult;
 
 mod chunk;
 mod compiler;
@@ -9,11 +10,8 @@ mod scanner;
 mod token;
 mod value;
 mod vm;
-
-pub enum InterpretResult {
-  CompileError,
-  RuntimeError,
-}
+mod function;
+mod error;
 
 fn main() {
   let args: Vec<String> = args().collect();

@@ -1,5 +1,8 @@
+use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use crate::chunk::Chunk;
+use crate::function::Function;
 
 #[derive(PartialEq, PartialOrd)]
 pub enum Value {
@@ -7,6 +10,7 @@ pub enum Value {
   Number(f64),
   Nil,
   Str(String),
+  Func(Function),
 }
 
 impl Clone for Value {
@@ -16,6 +20,7 @@ impl Clone for Value {
       Value::Number(n) => Value::Number(*n),
       Value::Nil => Value::Nil,
       Value::Str(s) => Value::Str(s.clone()),
+      Value::Func(f) => Value::Func(f.clone()),
     }
   }
 }
@@ -27,6 +32,7 @@ impl Display for Value {
       Value::Number(n) => write!(f, "{n}"),
       Value::Nil => write!(f, "nil"),
       Value::Str(s) => write!(f, "{s}"),
+      Value::Func(func) => write!(f, "{func}"),
     }
   }
 }
@@ -101,6 +107,7 @@ impl Value {
   }
 }
 
+#[derive(Clone)]
 pub struct ValueArray {
   values: Vec<Value>,
 }

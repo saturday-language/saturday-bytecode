@@ -1,10 +1,11 @@
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Compiler;
 use crate::value::Value;
-use crate::InterpretResult;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::error::InterpretResult;
+use crate::function::Function;
 
 pub struct VM {
   ip: usize,
@@ -26,14 +27,14 @@ impl VM {
   pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
     let mut chunk = Chunk::new();
     let mut compiler = Compiler::new(&mut chunk);
-    compiler.compile(source)?;
+    let function = compiler.compile(source)?;
 
     self.ip = 0;
-    self.chunk = Rc::new(chunk);
-    self.run()
+    self.run(function);
   }
 
-  fn run(&mut self) -> Result<(), InterpretResult> {
+  fn run(&mut self, function: Function) -> Result<(), InterpretResult> {
+    let prev = self.chunk.replace(function.chunk);
     loop {
       #[cfg(feature = "debug_trace_execution")]
       {
@@ -47,6 +48,9 @@ impl VM {
 
       let instruction: OpCode = self.read_byte().into();
       match instruction {
+        Call => {
+          self.run(self.local.pop_function())
+        }
         OpCode::Loop => {
           let offset = self.read_short();
           self.ip -= offset;
@@ -142,6 +146,7 @@ impl VM {
         }
       }
     }
+    self.chunk.replace(prev);
   }
 
   fn pop(&mut self) -> Value {
