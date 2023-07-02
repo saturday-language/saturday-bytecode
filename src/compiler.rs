@@ -209,7 +209,7 @@ impl<'a> Compiler<'a> {
 
   /// 表达式结尾 必须换行
   fn consume_statement_end(&mut self) {
-    if vec![TokenType::Eof, TokenType::Wrap].contains(&self.parser.current.t_type) {
+    if vec![TokenType::Eof, TokenType::Wrap, TokenType::SemiColon].contains(&self.parser.current.t_type) {
       self.advance();
       return;
     }
@@ -546,6 +546,57 @@ impl<'a> Compiler<'a> {
     self.emit_byte(OpCode::Pop.into());
   }
 
+  fn for_statement(&mut self) {
+    self.begin_scope();
+    // for-变量定义解析
+    if self.is_match(TokenType::SemiColon) {
+      // No initializer
+    } else if self.is_match(TokenType::Def) {
+      self.def_declaration();
+    } else {
+      self.expression_statement(); // consume semicolon
+    }
+
+    let mut loop_start = self.chunk.count();
+
+    // for-判断条件解析
+    let exit_jump = if self.is_match(TokenType::SemiColon) {
+      None
+    } else {
+      self.expression();
+      self.consume(TokenType::SemiColon, "Expect ';' after loop condition.");
+
+      // 如果上面表达式解析出的结果是false 则跳出循环
+      let result = self.emit_jump(OpCode::JumpIfFalse);
+      self.emit_byte(OpCode::Pop.into());
+
+      Some(result)
+    };
+
+    // for-条件修改解析
+    if !self.check(TokenType::LeftBrace) {
+      let body_jump = self.emit_jump(OpCode::Jump);
+      let increment_start = self.chunk.count();
+
+      self.expression();
+      self.emit_byte(OpCode::Pop.into());
+
+      self.emit_loop(loop_start);
+      loop_start = increment_start;
+      self.patch_jump(body_jump);
+    }
+
+    self.statement();
+    self.emit_loop(loop_start);
+
+    if let Some(exit) = exit_jump {
+      self.patch_jump(exit);
+      self.emit_byte(OpCode::Pop.into());
+    }
+
+    self.end_scope();
+  }
+
   fn if_statement(&mut self) {
     self.expression();
 
@@ -637,6 +688,8 @@ impl<'a> Compiler<'a> {
   fn statement(&mut self) {
     if self.is_match(TokenType::Print) {
       self.print_statement();
+    } else if self.is_match(TokenType::For) {
+      self.for_statement();
     } else if self.is_match(TokenType::If) {
       self.if_statement();
     } else if self.is_match(TokenType::While) {
