@@ -24,12 +24,19 @@ pub enum OpCode {
   SetLocal,
   JumpIfFalse,
   Jump,
+  Loop,
 }
 
 pub struct Chunk {
   code: Vec<u8>,
   lines: Vec<usize>,
   constants: ValueArray,
+}
+
+#[derive(PartialEq)]
+enum JumpStyle {
+  Forwards,
+  Backwards,
 }
 
 impl Chunk {
@@ -94,6 +101,7 @@ impl Chunk {
     }
 
     let instruction: OpCode = self.code[offset].into();
+    use JumpStyle::*;
     match instruction {
       OpCode::Constant => self.constant_instruction("OP_CONSTANT", offset),
       OpCode::Return => self.simple_instruction("OP_RETURN", offset),
@@ -116,8 +124,9 @@ impl Chunk {
       OpCode::SetGlobal => self.constant_instruction("OP_SET_GLOBAL", offset),
       OpCode::GetLocal => self.byte_instruction("OP_GET_LOCAL", offset),
       OpCode::SetLocal => self.byte_instruction("OP_SET_LOCAL", offset),
-      OpCode::JumpIfFalse => self.jump_instruction("OP_JUMP_IF_FALSE", true, offset),
-      OpCode::Jump => self.jump_instruction("OP_JUMP", true, offset),
+      OpCode::JumpIfFalse => self.jump_instruction("OP_JUMP_IF_FALSE", Forwards, offset),
+      OpCode::Jump => self.jump_instruction("OP_JUMP", Forwards, offset),
+      OpCode::Loop => self.jump_instruction("OP_LOOP", Backwards, offset),
     }
   }
 
@@ -132,9 +141,9 @@ impl Chunk {
     offset + 2
   }
 
-  fn jump_instruction(&self, name: &str, forward_jump: bool, offset: usize) -> usize {
+  fn jump_instruction(&self, name: &str, forward_jump: JumpStyle, offset: usize) -> usize {
     let jump = self.get_jump_offset(offset + 1);
-    let jump_to = if forward_jump {
+    let jump_to = if forward_jump == JumpStyle::Forwards {
       offset + 3 + jump
     } else {
       offset + 3 - jump
@@ -179,6 +188,7 @@ impl From<u8> for OpCode {
       20 => OpCode::SetLocal,
       21 => OpCode::JumpIfFalse,
       22 => OpCode::Jump,
+      23 => OpCode::Loop,
       _ => unimplemented!("Invalid opcode"),
     }
   }

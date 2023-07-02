@@ -243,6 +243,18 @@ impl<'a> Compiler<'a> {
     self.emit_byte(byte2);
   }
 
+  fn emit_loop(&mut self, loop_start: usize) {
+    self.emit_byte(OpCode::Loop.into());
+
+    let offset = self.chunk.count() + 2 - loop_start;
+    if offset > u16::MAX as usize {
+      self.error("Loop body too large.");
+    }
+
+    self.emit_byte(((offset >> 8) & 0xff) as u8);
+    self.emit_byte((offset & 0xff) as u8);
+  }
+
   /// 在需要被跳过的指令之前插入 需要在解析完要被跳过的指令之后使用patch_jump方法存储要跳转到的位置
   /// 在真正执行时拿到该位置再进行跳转，从而跳过emit_jump和patch_jump之间的指令
   fn emit_jump(&mut self, instruction: OpCode) -> usize {
@@ -559,6 +571,20 @@ impl<'a> Compiler<'a> {
     self.emit_byte(OpCode::Print.into());
   }
 
+  fn while_statement(&mut self) {
+    let loop_start = self.chunk.count();
+
+    self.expression();
+
+    let exit_jump = self.emit_jump(OpCode::JumpIfFalse);
+    self.emit_byte(OpCode::Pop.into());
+    self.statement();
+    self.emit_loop(loop_start);
+
+    self.patch_jump(exit_jump);
+    self.emit_byte(OpCode::Pop.into());
+  }
+
   fn synchronize(&mut self) {
     self.parser.panic_mode.replace(false);
 
@@ -613,6 +639,8 @@ impl<'a> Compiler<'a> {
       self.print_statement();
     } else if self.is_match(TokenType::If) {
       self.if_statement();
+    } else if self.is_match(TokenType::While) {
+      self.while_statement();
     } else if self.is_match(TokenType::LeftBrace) {
       self.begin_scope();
       self.block();
