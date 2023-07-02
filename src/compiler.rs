@@ -151,6 +151,9 @@ impl<'a> Compiler<'a> {
     rules[TokenType::String as usize].prefix = Some(Compiler::string);
     rules[TokenType::Identifier as usize].prefix = Some(Compiler::variable);
 
+    rules[TokenType::And as usize].infix = Some(Compiler::and);
+    rules[TokenType::And as usize].precedence = Precedent::And;
+
     Self {
       parser: Parser::default(),
       scanner: Scanner::new(""),
@@ -473,6 +476,13 @@ impl<'a> Compiler<'a> {
     }
   }
 
+  fn and(&mut self, _: bool) {
+    let end_jump = self.emit_jump(OpCode::JumpIfFalse);
+    self.emit_byte(OpCode::Pop.into());
+    self.parse_precedence(Precedent::And);
+    self.patch_jump(end_jump);
+  }
+
   fn expression(&mut self) {
     self.parse_precedence(Precedent::Assignment);
   }
@@ -621,3 +631,4 @@ impl<'a> Compiler<'a> {
     self.parser.had_error.replace(true);
   }
 }
+
