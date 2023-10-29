@@ -1,7 +1,6 @@
-use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use crate::chunk::Chunk;
+
 use crate::function::Function;
 
 #[derive(PartialEq, PartialOrd)]

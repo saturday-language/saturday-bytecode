@@ -27,7 +27,7 @@ pub enum OpCode {
   Loop,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Chunk {
   code: Vec<u8>,
   lines: Vec<usize>,

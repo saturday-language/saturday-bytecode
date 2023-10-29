@@ -1,24 +1,25 @@
-use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
+
 use crate::chunk::Chunk;
 
 pub struct Function {
   arity: usize,
-  pub chunk: RefCell<Chunk>,
+  pub chunk: Rc<Chunk>,
   name: String,
 }
 
 
 impl PartialOrd for Function {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+  fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
     panic!("comparing the ord of two functions");
   }
 }
 
 impl PartialEq for Function {
-  fn eq(&self, other: &Self) -> bool {
-    false
+  fn eq(&self, _other: &Self) -> bool {
+    todo!()
   }
 }
 
@@ -34,16 +35,24 @@ impl Clone for Function {
 
 impl Display for Function {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    write!("<fn {}>", self.name)
+    if self.name.is_empty() {
+      write!(f, "<script>")
+    } else {
+      write!(f, "<fn {}>", self.name)
+    }
   }
 }
 
 impl Function {
-  pub fn new() -> Self {
+  pub fn new(chunk: &Rc<Chunk>) -> Self {
     Function {
       arity: 0,
-      chunk: RefCell::new(Chunk::new()),
+      chunk: Rc::clone(chunk),
       name: "".to_string(),
     }
+  }
+
+  pub fn get_chunk(&self) -> Rc<Chunk> {
+    Rc::clone(&self.chunk)
   }
 }
