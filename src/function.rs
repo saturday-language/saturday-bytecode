@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use crate::chunk::Chunk;
 
+#[derive(Debug)]
 pub struct Function {
   arity: usize,
   pub chunk: Rc<Chunk>,

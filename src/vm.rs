@@ -6,7 +6,6 @@ use std::rc::Rc;
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Compiler;
 use crate::error::InterpretResult;
-use crate::function::Function;
 use crate::value::Value;
 
 pub struct VM {
@@ -16,7 +15,7 @@ pub struct VM {
 }
 
 struct CallFrame {
-  function: Rc<Function>,
+  function: usize,
   ip: RefCell<usize>,
   slots: usize,
 }
@@ -42,12 +41,12 @@ impl VM {
 
   pub fn interpret(&mut self, source: &str) -> Result<(), InterpretResult> {
     let mut compiler = Compiler::new();
-    let function = Rc::new(compiler.compile(source)?);
-
+    let function = compiler.compile(source)?;
+    self.stack.push(Value::Func(function));
     self.frames.push(CallFrame {
-      function,
+      function: 0,
       ip: RefCell::new(0),
-      slots: self.stack.len(),
+      slots: 0,
     });
     self.run()
   }
@@ -58,6 +57,15 @@ impl VM {
 
   fn current_frame(&self) -> &CallFrame {
     self.frames.last().unwrap()
+  }
+
+  fn chunk(&self) -> Rc<Chunk> {
+    let position = self.frames.last().unwrap().function;
+    if let Value::Func(f) = &self.stack[position] {
+      f.get_chunk()
+    } else {
+      panic!("no chunk");
+    }
   }
 
   fn run(&mut self) -> Result<(), InterpretResult> {
@@ -84,7 +92,7 @@ impl VM {
         }
         OpCode::JumpIfFalse => {
           let offset = self.read_short();
-          if self.peek(0).is_falsy() {
+          if self.peek(0).is_falsely() {
             self.current_frame().inc(offset);
           }
         }
@@ -124,12 +132,14 @@ impl VM {
           self.pop();
         }
         OpCode::GetLocal => {
-          let slot = self.read_byte();
-          self.stack.push(self.stack[slot as usize].clone());
+          let slot = self.read_byte() as usize;
+          let slot_offset = self.current_frame().slots;
+          self.stack.push(self.stack[slot_offset + slot].clone());
         }
         OpCode::SetLocal => {
           let slot = self.read_byte() as usize;
-          self.stack[slot] = self.peek(0).clone();
+          let slot_offset = self.current_frame().slots;
+          self.stack[slot_offset + slot] = self.peek(0).clone();
         }
         OpCode::Print => {
           println!("{}", self.pop());
@@ -157,7 +167,7 @@ impl VM {
         OpCode::Divide => self.binary_op(|a, b| a / b)?,
         OpCode::Not => {
           let value = self.pop();
-          self.stack.push(Value::Boolean(value.is_falsy()));
+          self.stack.push(Value::Boolean(value.is_falsely()));
         }
         OpCode::Negate => {
           if !self.peek(0).is_number() {
@@ -169,10 +179,6 @@ impl VM {
         }
       }
     }
-  }
-
-  fn chunk(&self) -> Rc<Chunk> {
-    self.frames.last().unwrap().function.get_chunk()
   }
 
   fn pop(&mut self) -> Value {
@@ -213,6 +219,7 @@ impl VM {
       self.stack.push(op(a, b));
       Ok(())
     } else {
+      println!("{:?} and {:?}", self.peek(0), self.peek(1));
       self.runtime_error(&"Operands must be two numbers or two strings.")
     }
   }

@@ -172,10 +172,14 @@ impl Compiler {
   }
 
   pub fn compile(&mut self, source: &str) -> Result<Function, InterpretResult> {
+    self.locals.borrow_mut().push(Local {
+      name: Token::default(),
+      depth: Some(0),
+    });
     self.scanner = Scanner::new(source);
     self.advance();
 
-    while !self.is_match(TokenType::Eof) {
+    while !self.does_match(TokenType::Eof) {
       self.declaration();
     }
 
@@ -230,7 +234,7 @@ impl Compiler {
     self.parser.current.t_type == t_type
   }
 
-  fn is_match(&mut self, t_type: TokenType) -> bool {
+  fn does_match(&mut self, t_type: TokenType) -> bool {
     if self.check(t_type) {
       self.advance();
       true
@@ -405,7 +409,7 @@ impl Compiler {
       )
     };
 
-    if can_assign && self.is_match(TokenType::Equal) {
+    if can_assign && self.does_match(TokenType::Equal) {
       self.expression();
       self.emit_bytes(set_op, arg);
     } else {
@@ -441,7 +445,7 @@ impl Compiler {
           infix_rule(self, can_assign);
         }
 
-        if can_assign && self.is_match(TokenType::Equal) {
+        if can_assign && self.does_match(TokenType::Equal) {
           self.error("Invalid assignment target.");
         }
       }
@@ -535,7 +539,7 @@ impl Compiler {
   fn def_declaration(&mut self) {
     let global = self.parse_variable("Expect variable name.");
 
-    if self.is_match(TokenType::Equal) {
+    if self.does_match(TokenType::Equal) {
       self.expression();
     } else {
       self.emit_byte(OpCode::Nil.into());
@@ -554,9 +558,9 @@ impl Compiler {
   fn for_statement(&mut self) {
     self.begin_scope();
     // for-变量定义解析
-    if self.is_match(TokenType::SemiColon) {
+    if self.does_match(TokenType::SemiColon) {
       // No initializer
-    } else if self.is_match(TokenType::Def) {
+    } else if self.does_match(TokenType::Def) {
       self.def_declaration();
     } else {
       self.expression_statement(); // consume semicolon
@@ -565,7 +569,7 @@ impl Compiler {
     let mut loop_start = self.chunk.borrow().count();
 
     // for-判断条件解析
-    let exit_jump = if self.is_match(TokenType::SemiColon) {
+    let exit_jump = if self.does_match(TokenType::SemiColon) {
       None
     } else {
       self.expression();
@@ -614,7 +618,7 @@ impl Compiler {
     self.emit_byte(OpCode::Pop.into());
     self.patch_jump(then_jump);
 
-    if self.is_match(TokenType::Else) {
+    if self.does_match(TokenType::Else) {
       self.statement();
     }
 
@@ -670,7 +674,7 @@ impl Compiler {
     // 去除表达式前的换行
     self.skip_new_line();
 
-    if self.is_match(TokenType::Def) {
+    if self.does_match(TokenType::Def) {
       self.def_declaration();
     } else {
       self.statement();
@@ -691,15 +695,15 @@ impl Compiler {
   }
 
   fn statement(&mut self) {
-    if self.is_match(TokenType::Print) {
+    if self.does_match(TokenType::Print) {
       self.print_statement();
-    } else if self.is_match(TokenType::For) {
+    } else if self.does_match(TokenType::For) {
       self.for_statement();
-    } else if self.is_match(TokenType::If) {
+    } else if self.does_match(TokenType::If) {
       self.if_statement();
-    } else if self.is_match(TokenType::While) {
+    } else if self.does_match(TokenType::While) {
       self.while_statement();
-    } else if self.is_match(TokenType::LeftBrace) {
+    } else if self.does_match(TokenType::LeftBrace) {
       self.begin_scope();
       self.block();
       self.end_scope();
